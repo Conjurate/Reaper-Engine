@@ -1,4 +1,6 @@
-﻿namespace Reaper;
+﻿using System.Runtime.CompilerServices;
+
+namespace Reaper;
 
 [RequireModule(typeof(SpriteDisplay))]
 public class Animator : EntityModule
@@ -14,11 +16,27 @@ public class Animator : EntityModule
     private int curIndex;
     private float curTime;
     private float curDuration;
+    private bool once;
+    private bool reverse;
+
+    // Queue for animations to play after initialization
+    private string queuedId;
+    private bool queuedOnce;
+    private bool queuedReverse;
 
     private void Init()
     {
         display = GetModule<SpriteDisplay>();
         baseSprite = display.Sprite;
+    }
+
+    private void Load()
+    {
+        if (queuedId != null)
+        {
+            Play(queuedId, queuedOnce, queuedReverse);
+            queuedId = null;
+        }
     }
 
     private void Update()
@@ -30,7 +48,18 @@ public class Animator : EntityModule
         if (curTime >= curDuration)
         {
             curTime = 0;
-            curIndex = (curIndex + 1) % curSheet.Length;
+
+            if (once)
+            {
+                if ((!reverse && curIndex >= curSheet.Length - 1) || (reverse && curIndex <= 0))
+                {
+                    Stop();
+                    return;
+                }
+            }
+
+            curIndex = (curIndex + (reverse ? -1 : 1)) % curSheet.Length;
+            if (curIndex < 0) curIndex = curSheet.Length - 1;
             display.Sprite = curSheet[curIndex];
             curDuration = curDurations[curIndex % curDurations.Length];
         }
@@ -44,15 +73,32 @@ public class Animator : EntityModule
         animations[id] = (sheet, durations);
     }
 
-    public void Play(string id)
+    public void Play(string id, bool once = false, bool reverse = false)
     {
+        if (Owner == null || !Owner.Initialized)
+        {
+            queuedId = id;
+            queuedOnce = once;
+            queuedReverse = reverse;
+            return;
+        }
+        this.once = once;
+        this.reverse = reverse;
         if (animations.TryGetValue(id, out (SpriteSheet, float[]) animation))
         {
             curSheet = animation.Item1;
             curDurations = animation.Item2;
-            curDuration = curDurations[0];
-            curIndex = 0;
             curTime = 0;
+
+            if (!reverse)
+            {
+                curDuration = curDurations[0];
+                curIndex = 0;
+            } else
+            {
+                curDuration = curDurations[^1];
+                curIndex = curSheet.Length - 1;
+            }
 
             Sprite sprite = curSheet[curIndex];
             if (display != null)
@@ -62,6 +108,8 @@ public class Animator : EntityModule
 
     public void Stop()
     {
+        once = false;
+        reverse = false;
         display.Sprite = baseSprite;
         curSheet = null;
         curDurations = null;

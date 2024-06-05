@@ -1,24 +1,37 @@
 ﻿using System;
 using System.Numerics;
+using Reaper.UI;
 
 namespace Reaper;
 
-public class Entity() : EngineObject, IIdentifiable, IEquatable<Entity>
+public class Entity : EngineObject, IIdentifiable, IEquatable<Entity>
 {
+    public string Name { get; set; }
+    public Transform Transform { get; private set; }
+    public Scene Scene { get; internal set; }
     public bool HasModules => modules != null;
 
     private Dictionary<Type, List<EntityModule>> modules;
     private SortedList<int, List<EntityModule>> sortedModules;
 
-    public Entity(float x, float y) : this()
+    public Entity(string name)
     {
-        X = x;
-        Y = y;
+        Name = name;
+        Transform = new Transform();
+        AddModule(Transform);
     }
+
+    public Entity(string name, float x, float y) : this(name)
+    {
+        Transform.LocalPosition = new Vector2(x, y);
+    }
+
+    public Entity(string name, Vector2 pos) : this(name, pos.X, pos.Y) { }
 
     #region Internal
 
     internal Action<Entity, EntityModule, bool> ModuleStateChanged; // true = added, false = removed
+    internal Action<Entity> Updated;
     internal bool Initialized { get; private set; }
     internal bool Spawned { get; set; }
 
@@ -38,17 +51,17 @@ public class Entity() : EngineObject, IIdentifiable, IEquatable<Entity>
                     if (modules.ContainsKey(type))
                         continue;
 
-                    modules.Remove(entry.Key);
-
-                    int priority = ModuleCache.GetPriority(type);
+                    /*int priority = ModuleCache.GetPriority(type);
                     List<EntityModule> prioModules = sortedModules[priority];
                     foreach (EntityModule module in modules[type])
                     {
                         if (prioModules.Remove(module))
                             Log.Info("Removed prio module " + priority);
-                    }
+                    }*/
 
-                    Log.Warn($"Missing module dependency: {GetType().Name} does not have {type.Name} as a required module for {entry.Key.Name}");
+                    modules.Remove(entry.Key);
+
+                    Log.Warn($"Missing module dependency: {GetType().Name} {Id} does not have {type.Name} as a required module for {entry.Key.Name}");
                 }
             }
 
@@ -81,7 +94,11 @@ public class Entity() : EngineObject, IIdentifiable, IEquatable<Entity>
         }
     }
 
-    internal void Update() => RunForModules(m => m.CallUpdate());
+    internal void Update()
+    {
+        RunForModules(m => m.CallUpdate());
+        Updated?.Invoke(this);
+    }
 
     #endregion Internal
 
@@ -93,13 +110,30 @@ public class Entity() : EngineObject, IIdentifiable, IEquatable<Entity>
         modules ??= [];
         sortedModules ??= [];
 
+        // Setup dependencies
+        HashSet<Type> depend = ModuleCache.GetDependencies(type);
+        foreach (Type dType in depend)
+        {
+
+        }
+
+        // Change to RectTransform if it's a dependency
+        if (depend.Contains(typeof(RectTransform)) && Transform.GetType() != typeof(RectTransform))
+        {
+            RemoveModule(Transform);
+            Transform = new RectTransform();
+            AddModule(Transform as RectTransform);
+            Log.Debug($"Changed transform to RectTransform for entity {Id}");
+        }
+
         if (!modules.TryGetValue(type, out List<EntityModule> typeModules))
         {
             typeModules = [];
             modules[type] = typeModules;
+            Log.Debug("Added type " + type.FullName);
         }
 
-        module.SetOwner(this);
+        module.Owner = this;
         typeModules.Add(module);
 
         // Module priority
@@ -134,7 +168,7 @@ public class Entity() : EngineObject, IIdentifiable, IEquatable<Entity>
 
     public T GetModule<T>(int index = 0)
     {
-        if (index < 0)
+        if (index < 0 || modules == null)
             return default;
 
         Type type = typeof(T);
@@ -168,6 +202,8 @@ public class Entity() : EngineObject, IIdentifiable, IEquatable<Entity>
 
         return typeModules.Cast<T>().ToList();
     }
+
+    public bool HasModule<T>(T type) where T : Type => modules.ContainsKey(type);
 
     #endregion Module
 

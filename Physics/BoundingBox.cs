@@ -15,6 +15,13 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
         return new BoundingBox(min, max);
     }
 
+    public static BoundingBox FromSprite(Sprite sprite, float x = 0, float y = 0)
+    {
+        float worldX = x - ((sprite.Texture.Width * sprite.Pivot.X) * Engine.Pixel);
+        float worldY = y - ((sprite.Texture.Height * sprite.Pivot.Y) * Engine.Pixel);
+        return new BoundingBox(worldX, worldY, worldX + (sprite.Texture.Width * Engine.Pixel), worldY + (sprite.Texture.Height * Engine.Pixel));
+    }
+
     public Vector2 Min { get; }
     public Vector2 Max { get; }
     public float Width => Max.X - Min.X;
@@ -40,6 +47,8 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
     public bool Intersects(Vector2 min, Vector2 max) => Intersects(min.X, min.Y, max.X, max.Y);
 
     public bool Intersects(BoundingBox box) => Intersects(box.Min, box.Max);
+
+    public bool Intersects(UI.Rectangle rect) => Intersects(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height);
 
     public override bool Equals(object obj) => obj is BoundingBox other && Equals(other);
 

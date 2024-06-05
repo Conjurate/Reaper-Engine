@@ -5,15 +5,13 @@ namespace Reaper;
 
 public abstract class EntityModule : IIdentifiable, IEquatable<EntityModule>
 {
-    public int Id { get; private set; } = Engine.GetNextId();
+    public int Id { get; private set; } = Engine.EntityIds.NextId;
 
-    public Entity Owner => owner;
+    public Entity Owner { get; internal set; }
+    public Transform Transform => Owner.Transform;
     public bool IsLoaded { get; private set; }
 
-    private Entity owner;
     private Dictionary<string, Action> methodCache = [];
-
-    internal void SetOwner(Entity owner) => this.owner = owner;
 
     internal void CallInit() => CallMethod("Init", false);
 
@@ -63,32 +61,15 @@ public abstract class EntityModule : IIdentifiable, IEquatable<EntityModule>
 
     #region Helpers
 
-    public Vector2 Position
-    {
-        get => owner.Position;
-        set => owner.Position = value;
-    }
-    public float X
-    {
-        get => owner.X;
-        set => owner.X = value;
-    }
-    public float Y
-    {
-        get => owner.Y;
-        set => owner.Y = value;
-    }
-    public bool Visible
-    {
-        get => owner.Visible;
-        set => owner.Visible = value;
-    }
-
     protected Camera Camera => SceneManager.ActiveScene.Camera;
 
-    public T GetModule<T>(int index = 0) where T : EntityModule => owner.GetModule<T>(index);
+    public T GetModule<T>(int index = 0) where T : EntityModule => Owner.GetModule<T>(index);
 
-    public List<T> GetModules<T>() where T : EntityModule => owner.GetModules<T>();
+    public List<T> GetModules<T>() where T : EntityModule => Owner.GetModules<T>();
+
+    public void Spawn(Entity entity) => SceneManager.ActiveScene.Spawn(entity);
+
+    public void Remove(Entity entity) => SceneManager.ActiveScene.Remove(entity);
 
     #endregion Helpers
 

@@ -17,6 +17,10 @@ public struct Color
 
     public Color(int r, int g, int b, int a)
     {
+        r = EngineUtil.Range(r, 0, 255);
+        g = EngineUtil.Range(g, 0, 255);
+        b = EngineUtil.Range(b, 0, 255);
+        a = EngineUtil.Range(a, 0, 255);
         raylibColor = new Raylib_cs.Color(r, g, b, a);
     }
 }

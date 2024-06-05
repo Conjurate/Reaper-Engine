@@ -25,7 +25,9 @@ internal static class ModuleCache
                     foreach (RequireModuleAttribute att in reqModules)
                     {
                         foreach (Type modType in att.ModuleTypes)
+                        {
                             types.Add(modType);
+                        }
                     }
                     dependencies[type] = types;
                 }

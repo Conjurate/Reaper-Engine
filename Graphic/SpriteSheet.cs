@@ -1,5 +1,6 @@
 ﻿using Raylib_cs;
 using System.Collections;
+using System.Numerics;
 
 namespace Reaper;
 
@@ -13,7 +14,7 @@ public class SpriteSheet : IEnumerable<Sprite>
     private int height;
     private Sprite[] sprites;
 
-    public SpriteSheet(Image source, int width, int height)
+    public SpriteSheet(Image source, int width, int height, Vector2 pivot = default)
     {
         this.width = width;
         this.height = height;
@@ -32,7 +33,7 @@ public class SpriteSheet : IEnumerable<Sprite>
                 // Crop out texture and convert to Sprite
                 Raylib.ImageCrop(ref srcCopy, new Rectangle((int)sourceRect.X, (int)sourceRect.Y, (int)sourceRect.Width, (int)sourceRect.Height));
                 Texture2D texture = Raylib.LoadTextureFromImage(srcCopy);
-                Sprite sprite = new Sprite(new Texture(texture));
+                Sprite sprite = new Sprite(new Texture(texture), pivot);
 
                 // Place into sprites and unload copied image
                 int index = (row * columns) + col;

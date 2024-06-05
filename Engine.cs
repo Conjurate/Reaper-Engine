@@ -1,5 +1,8 @@
 ﻿using Raylib_cs;
+using Reaper.UI;
 using System.Numerics;
+using System.Runtime.InteropServices;
+using Rectangle = Reaper.UI.Rectangle;
 
 namespace Reaper;
 
@@ -16,48 +19,59 @@ public class Engine
         }
     }
     public static float Pixel => pixel;
-
-    public static float TargetScale { get; private set; }
-    public static int TargetWidth { get; private set; }
-    public static int TargetHeight { get; private set; }
+    public static bool Initialized => init;
 
     private static int ppu = 16;
     private static float pixel = 1.0f / ppu;
-    internal static RenderTexture2D TargetRender;
-    //private static Camera2D camera = new Camera2D(Vector2.Zero, Vector2.Zero, 0f, 1.0f);
+    private static bool init;
 
     #region Id
 
-    private static int idCounter;
-
-    public static int GetNextId() => ++idCounter;
+    internal static Identity EntityIds = new Identity();
 
     #endregion Id
 
-    public static void Init(int width, int height, string title, int targetFPS, int targetWidth = 1920, int targetHeight = 1080)
+    public static void Init(int width, int height, string title, int targetFPS, int flags = 0)
     {
         ModuleCache.Build();
-        Raylib.SetConfigFlags(ConfigFlags.ResizableWindow);
+        Raylib.SetConfigFlags((ConfigFlags)flags);
         Raylib.InitWindow(width, height, title);
         Raylib.SetTargetFPS(targetFPS);
-        TargetWidth = targetWidth;
-        TargetHeight = targetHeight;
+        Raylib.InitAudioDevice();
+        Raylib.SetExitKey(KeyboardKey.Null);
+        init = true;
     }
 
-    public static void Run(int targetWidth, int targetHeight)
+    public static void Run()
     {
-        TargetRender = Raylib.LoadRenderTexture(TargetWidth, TargetHeight);
-        Raylib.SetTextureFilter(TargetRender.Texture, TextureFilter.Point);
+        if (!init)
+        {
+            Log.Error("You must call Engine.Init before running.");
+            return;
+        }
 
         while (!Raylib.WindowShouldClose())
         {
-            TargetScale = MathF.Min((float)Screen.Width / TargetWidth, (float)Screen.Height / TargetHeight);
+            int width = Screen.Width;
+            int height  = Screen.Height;
+            if (width != Screen.PrevWidth || height != Screen.PrevHeight)
+            {
+                Screen.IsResized = true;
+                Screen.PrevWidth = width;
+                Screen.PrevHeight = height;
+            }
+            CoroutineManager.Update();
             SceneManager.Update();
+            Screen.IsResized = false;
         }
 
-        Raylib.UnloadRenderTexture(TargetRender);
-
+        Raylib.CloseAudioDevice();
         Raylib.CloseWindow();
+    }
+
+    public static void Quit()
+    {
+        System.Environment.Exit(1);
     }
 
     #region Graphics
@@ -106,22 +120,62 @@ public class Engine
         Vector2 drawPos = pos;
         drawPos.Y *= -1;
         drawPos.Y -= texture.Height;
-        Raylib.DrawTextureEx(texture.raylibTexture, drawPos, rot, scale, tint.raylibColor);
+
+        float width = texture.Width * scale;
+        float height = texture.Height * scale;
+
+        Raylib_cs.Rectangle sourceRec = new Raylib_cs.Rectangle(0, 0, texture.Width, texture.Height);
+        Raylib_cs.Rectangle destRec = new Raylib_cs.Rectangle(drawPos.X + width / 2.0f, drawPos.Y + height / 2.0f, width, height);
+        Vector2 origin = new Vector2(width / 2.0f, height / 2.0f);
+
+        // Draw the texture
+        Raylib.DrawTexturePro(texture.raylibTexture, sourceRec, destRec, origin, rot, tint.raylibColor);
+    }
+
+    /// <summary>
+    /// Draw a texture to the screen.
+    /// </summary>
+    public static void DrawTexture(Texture texture, Vector2 pos, Rectangle dest, Color tint, float rot = 0, float scale = 1.0f)
+    {
+        Vector2 drawPos = pos;
+        drawPos.Y *= -1;
+        drawPos.Y -= texture.Height;
+
+        float width = texture.Width * scale;
+        float height = texture.Height * scale;
+
+        Raylib_cs.Rectangle sourceRec = new Raylib_cs.Rectangle(0, 0, texture.Width, texture.Height);
+        Raylib_cs.Rectangle destRec = new Raylib_cs.Rectangle(dest.X + width / 2.0f, dest.Y + height / 2.0f, dest.Width, dest.Height);
+        Vector2 origin = new Vector2(width / 2.0f, height / 2.0f);
+
+        // Draw the texture
+        Raylib.DrawTexturePro(texture.raylibTexture, sourceRec, destRec, origin, rot, tint.raylibColor);
     }
 
     /// <summary>
     /// Draw a rectangle to the screen.
     /// </summary>
-    public static void DrawRectangle(int x, int y, int width, int height, Color color, bool filled = false)
+    public static void DrawRectangle(float x, float y, float width, float height, Color color, bool filled = false)
     {
         if (filled)
-            Raylib.DrawRectangle(x, -y-height, width, height, color.raylibColor);
+            Raylib.DrawRectanglePro(new Raylib_cs.Rectangle(x, -y-height, width, height), Vector2.Zero, 0, color.raylibColor);
         else
-            Raylib.DrawRectangleLines(x, -y-height, width, height, color.raylibColor);
+            Raylib.DrawRectangleLinesEx(new Raylib_cs.Rectangle(x, -y-height, width, height), 1.0f, color.raylibColor);
     }
 
     /// <summary>
-    /// Draw a sprite to world space.
+    /// Draw a rectangle to the screen.
+    /// </summary>
+    public static void DrawRectangle(Rectangle rect, Color color, bool filled = false)
+    {
+        if (filled)
+            Raylib.DrawRectanglePro(new Raylib_cs.Rectangle(rect.X, -rect.Y - rect.Height, rect.Width, rect.Height), Vector2.Zero, 0, color.raylibColor);
+        else
+            Raylib.DrawRectangleLinesEx(new Raylib_cs.Rectangle(rect.X, -rect.Y - rect.Height, rect.Width, rect.Height), 1.0f, color.raylibColor);
+    }
+
+    /// <summary>
+    /// Draw a sprite to world space using the engine's coordinate system.
     /// </summary>
     public static void DrawSprite(Sprite sprite, Vector2 pos, Color tint, float rot = 0, float scale = 1.0f)
     {
@@ -135,11 +189,25 @@ public class Engine
     /// <summary>
     /// Draw a bounds using a render mode.
     /// </summary>
-    public static void DrawBounds(RenderMode mode, BoundingBox box, float xOffset = 0, float yOffset = 0, bool filled = false)
+    public static void DrawBounds(RenderMode mode, BoundingBox box, Color color, bool filled = false)
     {
-        int x = (int)(box.Min.X + xOffset);
-        int y = mode == RenderMode.Screen ? -(int)(box.Min.Y + yOffset) - (int)box.Height : (int)(box.Min.Y + yOffset);
-        Engine.DrawRectangle(x, y, (int)box.Width, (int)box.Height, Color.Blue, filled);
+        float x = box.Min.X;
+        float y = box.Min.Y;
+        float width = box.Width;
+        float height = box.Height;
+        if (mode == RenderMode.Screen)
+        {
+            y *= -1;
+            y -= box.Height;
+        } else
+        {
+            x *= PixelsPerUnit;
+            y *= PixelsPerUnit;
+            width *= PixelsPerUnit;
+            height *= PixelsPerUnit;
+        }
+
+        DrawRectangle(x, y, width, height, color, filled);
     }
 
     #endregion Graphics
@@ -163,10 +231,10 @@ public class Engine
         return new Sprite(texture, pivot);
     }
 
-    public static SpriteSheet LoadSpriteSheet(string path, int width, int height)
+    public static SpriteSheet LoadSpriteSheet(string path, int width, int height, Vector2 pivot = default)
     {
-        Image image = Raylib.LoadImage(path);
-        SpriteSheet sheet = new SpriteSheet(image, width, height);
+        Raylib_cs.Image image = Raylib.LoadImage(path);
+        SpriteSheet sheet = new SpriteSheet(image, width, height, pivot);
         Raylib.UnloadImage(image);
         return sheet;
     }
@@ -181,7 +249,7 @@ public class Engine
 
     public static UI.Font LoadFont(string path, int fontSize, int[] charRange = null, int codepointCount = 95)
     {
-        Font raylibFont = Raylib.LoadFontEx(path, fontSize, charRange, codepointCount);
+        Raylib_cs.Font raylibFont = Raylib.LoadFontEx(path, fontSize, charRange, codepointCount);
         Raylib.SetTextureFilter(raylibFont.Texture, TextureFilter.Point);
         return new UI.Font(raylibFont);
     }
@@ -199,6 +267,16 @@ public class Engine
     public static void UnloadShader(Shader shader)
     {
         Raylib.UnloadShader(shader.raylibShader);
+    }
+
+    public static Sound LoadSound(string path)
+    {
+        return new Sound(Raylib.LoadSound(path));
+    }
+
+    public static void UnloadSound(Sound sound)
+    {
+        Raylib.UnloadSound(sound.raylibSound);
     }
 
     #endregion

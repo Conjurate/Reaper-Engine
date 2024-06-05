@@ -4,45 +4,37 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace Reaper.UI;
 
-public class Label() : UIElement
+[RequireModule(typeof(RectTransform))]
+public class Label : EntityModule, IRenderableScreen, IRenderableWorld
 {
+    public int Layer { get; set; }
+
     public Font Font
     {
         get => font;
-        set
-        {
-            font = value;
-            UpdateBounds();
-        }
+        set => font = value;
     }
+    
     public float FontSize
     {
         get => fontSize;
-        set
-        {
-            fontSize = value;
-            UpdateBounds();
-        }
+        set => fontSize = value;
     }
+    
     public float Spacing
     {
         get => spacing;
-        set
-        {
-            spacing = value;
-            UpdateBounds();
-        }
+        set => spacing = value;
     }
+    
     public string Text
     {
         get => text;
-        set
-        {
-            text = value;
-            UpdateBounds();
-        }
+        set => text = value;
     }
+
     public Color Tint { get; set; } = Color.White;
+
     public float Rotation { get; set; }
 
     private Font font;
@@ -50,18 +42,19 @@ public class Label() : UIElement
     private float spacing;
     private string text;
 
-    public Label(string text, Font font, int fontSize) : this()
+    public Label(string text, Font font, int fontSize)
     {
-        Text = text;
-        Font = font;
-        FontSize = fontSize;
+        this.text = text;
+        this.font = font;
+        this.fontSize = fontSize;
         spacing = 1.0f;
-        UpdateBounds();
     }
 
-    public override void Render(RenderMode mode)
+    public bool IsRenderable(RenderMode mode) => true;
+
+    public void Render(RenderMode mode)
     {
-        Vector2 pos = Position;
+        Vector2 pos = Transform.Position;
 
         if (mode == RenderMode.World)
         {
@@ -72,9 +65,9 @@ public class Label() : UIElement
         Raylib.DrawTextPro(Font.raylibFont, Text, pos, Vector2.Zero, Rotation, FontSize, Spacing, Tint.raylibColor);
     }
 
-    private void UpdateBounds()
+    public Rectangle MeasureRect()
     {
         Vector2 textSize = Raylib.MeasureTextEx(font.raylibFont, text, fontSize, spacing);
-        scaledBounds = new BoundingBox(0, 0, textSize.X, textSize.Y);
+        return new Rectangle(0, 0, textSize.X, textSize.Y);
     }
 }

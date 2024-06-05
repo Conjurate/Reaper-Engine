@@ -1,62 +1,62 @@
 ﻿using Raylib_cs;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace Reaper;
 
-public class Camera : Entity
+public class Camera : EntityModule
 {
-    internal Camera2D camera2D;
-
-    public Vector2 Offset
-    {
-        get => camera2D.Offset;
-        set
-        {
-            camera2D.Offset = value;
-            UpdateBounds();
-        }
-    }
-    public float Zoom
-    {
-        get => camera2D.Zoom;
-        set
-        {
-            camera2D.Zoom = value;
-            UpdateBounds();
-        }
-    }
-    public float Rotation
-    {
-        get => camera2D.Rotation;
-        set
-        {
-            camera2D.Rotation = value;
-            //UpdateBounds();
-        }
-    }
+    public Vector2 Offset { get; set; } = Screen.Center;
+    public float Zoom { get; set; } = 1.0f;
     public BoundingBox Bounds => bounds;
+    public bool Updated
+    {
+        get
+        {
+            if (prevPos != Transform.Position) return true;
+            if (prevOffset != Offset) return true;
+            if (prevRot != Transform.Rotation) return true;
+            if (prevZoom != Zoom) return true;
+            return false;
+        }
+    }
 
     private BoundingBox bounds;
+    private Vector2 prevPos;
+    private Vector2 prevOffset;
+    private float prevZoom;
+    private float prevRot;
 
     public Camera()
     {
-        Zoom = 1.0f;
-        Offset = Screen.Center;
-        UpdateBounds();
-        PositionChanged += UpdatedPosition;
+
     }
 
-    private void UpdateBounds()
+    private void Update()
     {
-        float halfWidth = Screen.Width * 0.5f / camera2D.Zoom * Engine.Pixel;
-        float halfHeight = Screen.Height * 0.5f / camera2D.Zoom * Engine.Pixel;
-        bounds = new BoundingBox(X - halfWidth, Y - halfHeight, X + halfWidth, Y + halfHeight);
+        if (Screen.IsResized)
+        {
+            Offset = Screen.Center;
+        }
     }
 
-    private void UpdatedPosition(EngineObject entity, Vector2 oldPos)
+    internal void UpdateBounds()
     {
-        camera2D.Target = Position * Engine.PixelsPerUnit;
-        camera2D.Target.Y *= -1;
+        float halfWidth = (Screen.Width * Engine.Pixel / Zoom) * 0.5f;
+        float halfHeight = (Screen.Height * Engine.Pixel / Zoom) * 0.5f;
+        bounds = new BoundingBox(Transform.Position.X - halfWidth, Transform.Position.Y - halfHeight,
+            Transform.Position.X + halfWidth, Transform.Position.Y + halfHeight);
+
+        prevPos = Transform.Position;
+        prevOffset = Offset;
+        prevZoom = Zoom;
+        prevRot = Transform.Rotation;
+    }
+
+    private void UpdatedPosition(Transform transform, Vector2 oldPos)
+    {
+        //camera2D.Target = transform.Position * Engine.PixelsPerUnit;
+        //camera2D.Target.Y *= -1;
         UpdateBounds();
     }
 }

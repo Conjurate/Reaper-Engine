@@ -1,4 +1,6 @@
-﻿namespace Reaper;
+﻿using System.Runtime.CompilerServices;
+
+namespace Reaper;
 
 public static class Log
 {
@@ -21,10 +23,10 @@ public static class Log
         Console.ResetColor();
     }
 
-    public static void Debug(object message)
+    public static void Debug(object message, [CallerMemberName] string caller = "")
     {
         Console.ForegroundColor = ConsoleColor.Blue;
-        Console.WriteLine($"[DEBUG] {message}");
+        Console.WriteLine($"[DEBUG] [{caller}] {message}");
         Console.ResetColor();
     }
 }

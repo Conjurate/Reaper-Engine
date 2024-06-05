@@ -1,75 +1,73 @@
-﻿using Reaper.UI;
+﻿using Raylib_cs;
+using Reaper.UI;
+using System.Buffers;
 using System.Diagnostics;
 using System.Numerics;
 using System.Xml.Linq;
 
 namespace Reaper;
 
+[RequireModule(typeof(RectTransform))]
 public class Canvas : EntityModule, IRenderableScreen, IRenderableWorld
 {
-    public int ScreenLayer { get; set; }
-    public int WorldLayer { get; set; }
-    public RenderMode RenderMode { get; set; } = RenderMode.Screen;
-    public BoundingBox Bounds => scaledBounds.Bounds;
+    public int Layer { get; set; }
+    public RenderMode Mode { get; set; } = RenderMode.Screen;
 
-    private ScaledBounds scaledBounds;
-    private List<UIElement> elements = [];
+    private RectTransform rectTransform;
 
-    public Canvas(RenderMode mode = RenderMode.Screen, float width = 1920, float height = 1080)
+    private void Init()
     {
-        RenderMode = mode;
-        scaledBounds = new ScaledBounds(width, height);
+        rectTransform = Transform as RectTransform;
     }
 
-    public void Add(UIElement element)
-    {
-        elements.Add(element);
-    }
-
-    public void Remove(UIElement element)
-    {
-        elements.Remove(element);
-    }
-
-    public void Resize(float width, float height)
-    {
-        scaledBounds = new ScaledBounds(width, height);
-    }
-
-    private void Update()
+    internal bool CheckInteract()
     {
         if (Input.IsMousePressed(InputKey.Mouse0))
         {
-            Vector2 mousePos = RenderMode == RenderMode.Screen ? Mouse.Position : Mouse.WorldPosition;
+            Vector2 mousePos = Mode == RenderMode.Screen ? Mouse.Position : Mouse.WorldPosition;
             Log.Debug(mousePos);
-            foreach (UIElement element in elements)
+            foreach (Transform trans in Owner.Transform.Children)
             {
-                if (element.Bounds.Contains(mousePos))
+                if (trans is RectTransform rectTransform)
                 {
-                    element.CallClicked();
+                    if (rectTransform.Rect.Contains(mousePos))
+                    {
+                        foreach (IClickable clickable in trans.Find<IClickable>())
+                        {
+                            clickable.Click();
+                        }
+                    }
                 }
             }
         }
+
+        return false;
     }
 
     public bool IsRenderable(RenderMode mode)
     {
-        if (RenderMode != mode) return false;
-        return mode == RenderMode.Screen || SceneManager.ActiveScene.Camera.Bounds.Intersects(Bounds);
+        if (Mode != mode) return false;
+        return mode == RenderMode.Screen || SceneManager.ActiveScene.Camera.Bounds.Intersects(rectTransform.Rect);
     }
 
     public void Render(RenderMode mode)
     {
-        foreach (UIElement element in elements)
+        /*foreach (Transform trans in Owner.transform.Children)
         {
-            if (element.Visible)
+            if (mode == RenderMode.Screen)
             {
-                element.Render(mode);
+                foreach (IRenderableScreen renderable in trans.Owner.GetModules<IRenderableScreen>())
+                {
+                    renderable.Render(mode);
+                }
             }
+            foreach (trans.Owner.GetModules<IRenderable>())
+            if (trans is IRenderableScreen renderable)
+            {
+                renderable.Render(mode);
+            }
+        }*/
 
-            Engine.DrawBounds(RenderMode.Screen, element.Bounds);
-        }
-
-        Engine.DrawBounds(RenderMode.Screen, Bounds);
+        Engine.DrawRectangle(rectTransform.Rect, Color.Blue);
     }
 }

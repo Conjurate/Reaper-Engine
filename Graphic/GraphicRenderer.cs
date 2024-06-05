@@ -3,14 +3,22 @@ using System.Numerics;
 
 namespace Reaper;
 
+// Note: The transform object could change by adding a UI element to an entity
 internal class GraphicRenderer
 {
-    private const bool YSort = true;
+    private static Identity idGenerator = new Identity();
+    public static bool YSort = true;
 
     private List<ScreenRenderable> screen = [];
     private List<WorldRenderable> world = [];
     private bool needsScreenSorting;
     private bool needsWorldSorting;
+
+    public void ForceUpdate()
+    {
+        needsScreenSorting = true;
+        needsWorldSorting = true;
+    }
 
     public void AddRenderables(Entity entity)
     {
@@ -19,7 +27,7 @@ internal class GraphicRenderer
         if (screenRends.Count > 0)
         {
             foreach (IRenderableScreen screenRend in screenRends)
-                screen.Add(new ScreenRenderable(entity, screenRend));
+                screen.Add(new ScreenRenderable(idGenerator.NextId, entity, screenRend));
 
             needsScreenSorting = true;
             Log.Debug($"Added screen renderer for entity {entity.Id} ({entity.GetType()})");
@@ -30,13 +38,13 @@ internal class GraphicRenderer
         if (worldRends.Count > 0)
         {
             foreach (IRenderableWorld worldRend in worldRends)
-                world.Add(new WorldRenderable(entity, worldRend));
+                world.Add(new WorldRenderable(idGenerator.NextId, entity, worldRend));
 
             needsWorldSorting = true;
             Log.Debug($"Added world renderer for entity {entity.Id} ({entity.GetType()})");
         }
 
-        entity.PositionChanged += PositionChanged;
+        entity.Transform.UpdatedPosition += PositionChanged;
         entity.ModuleStateChanged += ModuleStateChanged;
         Log.Debug($"Registered entity {entity.Id} to GraphicRenderer ({screen.Count}, {world.Count})");
     }
@@ -58,7 +66,7 @@ internal class GraphicRenderer
         }
 
         // Unregister
-        entity.PositionChanged -= PositionChanged;
+        entity.Transform.UpdatedPosition -= PositionChanged;
         entity.ModuleStateChanged -= ModuleStateChanged;
         Log.Debug($"Unregistered entity {entity.Id} from GraphicRenderer ({screen.Count}, {world.Count})");
     }
@@ -71,7 +79,18 @@ internal class GraphicRenderer
                 {
                     if (needsScreenSorting)
                     {
-                        Util.QuickSort(screen, 0, screen.Count - 1, (a, b) => a.Renderable.ScreenLayer.CompareTo(b.Renderable.ScreenLayer));
+                        EngineUtil.QuickSort(screen, 0, screen.Count - 1, (a, b) => {
+                            // Check layers
+                            int layerComparison = a.Renderable.Layer.CompareTo(b.Renderable.Layer);
+                            if (layerComparison != 0) return layerComparison;
+
+                            // Check entity id
+                            int entityComparison = a.Entity.Id.CompareTo(b.Entity.Id);
+                            if (entityComparison != 0) return entityComparison;
+
+                            // Check render id
+                            return a.Id.CompareTo(b.Id);
+                        });
                         needsScreenSorting = false;
                     }
 
@@ -100,10 +119,24 @@ internal class GraphicRenderer
                 {
                     if (needsWorldSorting)
                     {
-                        Util.QuickSort(world, 0, world.Count - 1, (a, b) => {
-                            int layerComparison = a.Renderable.WorldLayer.CompareTo(b.Renderable.WorldLayer);
-                            if (layerComparison != 0 || !YSort) return layerComparison;
-                            return b.Entity.Y.CompareTo(a.Entity.Y);
+                        EngineUtil.QuickSort(world, 0, world.Count - 1, (a, b) => {
+                            // Check layers
+                            int layerComparison = a.Renderable.Layer.CompareTo(b.Renderable.Layer);
+                            if (layerComparison != 0) return layerComparison;
+
+                            // Check y level
+                            if (YSort)
+                            {
+                                int yComparison = b.Entity.Transform.Position.Y.CompareTo(a.Entity.Transform.Position.Y);
+                                if (yComparison != 0) return yComparison;
+                            }
+
+                            // Check entity id
+                            int entityComparison = a.Entity.Id.CompareTo(b.Entity.Id);
+                            if (entityComparison != 0) return entityComparison;
+
+                            // Check render id
+                            return a.Id.CompareTo(b.Id);
                         });
                         needsWorldSorting = false;
                     }
@@ -133,9 +166,9 @@ internal class GraphicRenderer
         }
     }
 
-    private void PositionChanged(EngineObject entity, Vector2 oldPos)
+    private void PositionChanged(Transform transform, Vector2 oldPos)
     {
-        if (YSort && entity.Position.Y != oldPos.Y)
+        if (YSort && transform.Position.Y != oldPos.Y)
         {
             needsWorldSorting = true;
         }
@@ -147,7 +180,7 @@ internal class GraphicRenderer
         {
             if (added)
             {
-                screen.Add(new ScreenRenderable(entity, screenRend));
+                screen.Add(new ScreenRenderable(idGenerator.NextId, entity, screenRend));
                 needsScreenSorting = true;
                 Log.Debug($"Added screen renderer for entity {entity.Id} ({entity.GetType()})");
             }
@@ -161,7 +194,7 @@ internal class GraphicRenderer
         {
             if (added)
             {
-                world.Add(new WorldRenderable(entity, worldRend));
+                world.Add(new WorldRenderable(idGenerator.NextId, entity, worldRend));
                 needsWorldSorting = true;
                 Log.Debug($"Added world renderer for entity {entity.Id} ({entity.GetType()})");
             }
@@ -179,14 +212,16 @@ public enum RenderMode
     World
 }
 
-public struct ScreenRenderable(Entity entity, IRenderableScreen renderable)
+public struct ScreenRenderable(int id, Entity entity, IRenderableScreen renderable)
 {
+    public int Id => id;
     public Entity Entity => entity;
     public IRenderableScreen Renderable => renderable;
 }
 
-public struct WorldRenderable(Entity entity, IRenderableWorld renderable)
+public struct WorldRenderable(int id, Entity entity, IRenderableWorld renderable)
 {
+    public int Id => id;
     public Entity Entity => entity;
     public IRenderableWorld Renderable => renderable;
 }

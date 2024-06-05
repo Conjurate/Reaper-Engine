@@ -4,7 +4,7 @@ namespace Reaper;
 
 public class TileMap : EntityModule, IRenderableWorld, IRenderableShader
 {
-    public int WorldLayer { get; set; }
+    public int Layer { get; set; }
     public Shader? Shader { get; set; }
     public SpriteSheet TileSheet => tileSheet;
     public int TileSize => tileSize;
@@ -22,7 +22,7 @@ public class TileMap : EntityModule, IRenderableWorld, IRenderableShader
         this.width = width;
         this.height = height;
         tiles = new int[width, height];
-        WorldLayer = layer;
+        Layer = layer;
     }
 
     public void SetTile(int x, int y, int id) => tiles[x, y] = id;
@@ -46,29 +46,30 @@ public class TileMap : EntityModule, IRenderableWorld, IRenderableShader
         // animatedTiles.ForEach(tile => tile.Animate());
     }
 
-    public bool IsRenderable(RenderMode mode) => Visible;
+    public bool IsRenderable(RenderMode mode) => true;
 
     public void Render(RenderMode mode)
     {
         BoundingBox bounds = Camera.Bounds;
 
         // Clamp to the tile array limits
-        int minX = Math.Max((int)Math.Floor(bounds.Min.X), 0);
-        int maxX = Math.Min((int)Math.Ceiling(bounds.Max.X), tiles.GetLength(0));
-        int minY = Math.Max((int)Math.Floor(bounds.Min.Y), 0);
-        int maxY = Math.Min((int)Math.Ceiling(bounds.Max.Y), tiles.GetLength(1));
+        int minX = Math.Max((int)Math.Floor(bounds.Min.X - Transform.Position.X), 0);
+        int maxX = Math.Min((int)Math.Ceiling(bounds.Max.X - Transform.Position.X), tiles.GetLength(0));
+        int minY = Math.Max((int)Math.Floor(bounds.Min.Y - Transform.Position.Y), 0);
+        int maxY = Math.Min((int)Math.Ceiling(bounds.Max.Y - Transform.Position.Y), tiles.GetLength(1));
 
         for (int x = minX; x < maxX; x++)
         {
             for (int y = minY; y < maxY; y++)
             {
                 int id = tiles[x, y];
-                if (id < 0 || id >= TileSheet.Length) continue;
-                Sprite sprite = TileSheet[id];
-                Vector2 pos = Position;
-                pos.X += x;
-                pos.Y += y;
-                Engine.DrawSprite(sprite, pos, Color.White);
+
+                if (id < 0 || id >= TileSheet.Length) 
+                    continue;
+
+                Vector2 pos = Transform.Position + new Vector2(x, y);
+
+                Engine.DrawSprite(TileSheet[id], pos, Color.White);
             }
         }
     }
