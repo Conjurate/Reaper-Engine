@@ -5,10 +5,8 @@ using static System.Net.Mime.MediaTypeNames;
 namespace Reaper.UI;
 
 [RequireModule(typeof(RectTransform))]
-public class Label : EntityModule, IRenderableScreen, IRenderableWorld
+public class Label : EntityModule, ICanvasRenderable
 {
-    public int Layer { get; set; }
-
     public Font Font
     {
         get => font;
@@ -49,8 +47,6 @@ public class Label : EntityModule, IRenderableScreen, IRenderableWorld
         this.fontSize = fontSize;
         spacing = 1.0f;
     }
-
-    public bool IsRenderable(RenderMode mode) => true;
 
     public void Render(RenderMode mode)
     {

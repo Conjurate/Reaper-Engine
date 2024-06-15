@@ -7,17 +7,23 @@ namespace Reaper;
 internal class GraphicRenderer
 {
     private static Identity idGenerator = new Identity();
-    public static bool YSort = true;
 
-    private List<ScreenRenderable> screen = [];
-    private List<WorldRenderable> world = [];
+    internal List<ScreenRenderable> screen = [];
+    internal List<WorldRenderable> world = [];
     private bool needsScreenSorting;
     private bool needsWorldSorting;
 
     public void ForceUpdate()
     {
+        if (!Engine.YSort) return;
         needsScreenSorting = true;
         needsWorldSorting = true;
+    }
+
+    public int IndexOf(RenderMode mode, Entity entity)
+    {
+        return mode == RenderMode.Screen ? screen.FindIndex(0, r => r.Entity == entity) : 
+            world.FindIndex(0, r => r.Entity == entity);
     }
 
     public void AddRenderables(Entity entity)
@@ -29,8 +35,8 @@ internal class GraphicRenderer
             foreach (IRenderableScreen screenRend in screenRends)
                 screen.Add(new ScreenRenderable(idGenerator.NextId, entity, screenRend));
 
-            needsScreenSorting = true;
-            Log.Debug($"Added screen renderer for entity {entity.Id} ({entity.GetType()})");
+            needsScreenSorting = Engine.YSort;
+            Log.Debug($"Added screen renderer for entity {entity.Name} ({entity.GetType()})");
         }
 
         // World
@@ -40,13 +46,13 @@ internal class GraphicRenderer
             foreach (IRenderableWorld worldRend in worldRends)
                 world.Add(new WorldRenderable(idGenerator.NextId, entity, worldRend));
 
-            needsWorldSorting = true;
-            Log.Debug($"Added world renderer for entity {entity.Id} ({entity.GetType()})");
+            needsWorldSorting = Engine.YSort;
+            Log.Debug($"Added world renderer for entity {entity.Name} ({entity.GetType()})");
         }
 
         entity.Transform.UpdatedPosition += PositionChanged;
         entity.ModuleStateChanged += ModuleStateChanged;
-        Log.Debug($"Registered entity {entity.Id} to GraphicRenderer ({screen.Count}, {world.Count})");
+        Log.Debug($"Registered entity {entity.Name} to GraphicRenderer ({screen.Count}, {world.Count})");
     }
 
     public void RemoveRenderables(Entity entity)
@@ -68,7 +74,7 @@ internal class GraphicRenderer
         // Unregister
         entity.Transform.UpdatedPosition -= PositionChanged;
         entity.ModuleStateChanged -= ModuleStateChanged;
-        Log.Debug($"Unregistered entity {entity.Id} from GraphicRenderer ({screen.Count}, {world.Count})");
+        Log.Debug($"Unregistered entity {entity.Name} from GraphicRenderer ({screen.Count}, {world.Count})");
     }
 
     public void Render(RenderMode mode)
@@ -125,7 +131,7 @@ internal class GraphicRenderer
                             if (layerComparison != 0) return layerComparison;
 
                             // Check y level
-                            if (YSort)
+                            if (Engine.YSort)
                             {
                                 int yComparison = b.Entity.Transform.Position.Y.CompareTo(a.Entity.Transform.Position.Y);
                                 if (yComparison != 0) return yComparison;
@@ -168,7 +174,7 @@ internal class GraphicRenderer
 
     private void PositionChanged(Transform transform, Vector2 oldPos)
     {
-        if (YSort && transform.Position.Y != oldPos.Y)
+        if (Engine.YSort && transform.Position.Y != oldPos.Y)
         {
             needsWorldSorting = true;
         }
@@ -182,7 +188,7 @@ internal class GraphicRenderer
             {
                 screen.Add(new ScreenRenderable(idGenerator.NextId, entity, screenRend));
                 needsScreenSorting = true;
-                Log.Debug($"Added screen renderer for entity {entity.Id} ({entity.GetType()})");
+                Log.Debug($"Added screen renderer for entity {entity.Name} ({entity.GetType()})");
             }
             else
             {
@@ -196,7 +202,7 @@ internal class GraphicRenderer
             {
                 world.Add(new WorldRenderable(idGenerator.NextId, entity, worldRend));
                 needsWorldSorting = true;
-                Log.Debug($"Added world renderer for entity {entity.Id} ({entity.GetType()})");
+                Log.Debug($"Added world renderer for entity {entity.Name} ({entity.GetType()})");
             }
             else
             {

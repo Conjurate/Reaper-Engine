@@ -15,11 +15,11 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
         return new BoundingBox(min, max);
     }
 
-    public static BoundingBox FromSprite(Sprite sprite, float x = 0, float y = 0)
+    public static BoundingBox FromSprite(Sprite sprite, float x = 0, float y = 0, float scale = 1.0f)
     {
-        float worldX = x - ((sprite.Texture.Width * sprite.Pivot.X) * Engine.Pixel);
-        float worldY = y - ((sprite.Texture.Height * sprite.Pivot.Y) * Engine.Pixel);
-        return new BoundingBox(worldX, worldY, worldX + (sprite.Texture.Width * Engine.Pixel), worldY + (sprite.Texture.Height * Engine.Pixel));
+        float worldX = x - ((sprite.Texture.Width * scale * sprite.Pivot.X) * Engine.Pixel);
+        float worldY = y - ((sprite.Texture.Height * scale * sprite.Pivot.Y) * Engine.Pixel);
+        return new BoundingBox(worldX, worldY, worldX + (sprite.Texture.Width * scale * Engine.Pixel), worldY + (sprite.Texture.Height * scale * Engine.Pixel));
     }
 
     public Vector2 Min { get; }
@@ -27,6 +27,11 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
     public float Width => Max.X - Min.X;
     public float Height => Max.Y - Min.Y;
     public Vector2 Size => Max - Min;
+    public Vector2 Center => Min + Size * 0.5f;
+    public float Left => Min.X;
+    public float Right => Max.X;
+    public float Top => Max.Y;
+    public float Bottom => Min.Y;
 
     public BoundingBox(Vector2 min, Vector2 max)
     {
@@ -55,7 +60,7 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
     public bool Equals(BoundingBox other) => Min == other.Min && Max == other.Max;
 
     public override int GetHashCode() => HashCode.Combine(Min, Max);
-
+        
     public override string ToString() => $"BoundingBox (Min: {Min}, Max: {Max})";
 
     public static BoundingBox operator +(BoundingBox bounds, Vector2 value)

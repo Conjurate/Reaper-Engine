@@ -1,4 +1,5 @@
 ﻿using Raylib_cs;
+using Reaper.Physics;
 using Reaper.UI;
 using System.ComponentModel;
 using System.Numerics;
@@ -14,13 +15,16 @@ public class Scene
     public string Name => name;
     public Camera Camera { get; set; }
 
-    private string name;
     internal Camera2D camera2D = new Camera2D(Vector2.Zero, Vector2.Zero, 0f, 1f);
+    internal Grid entities = new Grid();
+    internal Dictionary<string, Entity> entityByName = [];
+    internal GraphicRenderer graphics = new GraphicRenderer();
+    internal UIHandler ui = new UIHandler();
+    internal PhysicsEngine physics = new PhysicsEngine();
+
+    private string name;
     private Queue<Entity> spawnQueue = [];
     private Queue<Entity> deleteQueue = [];
-    private Dictionary<int, Entity> objects = [];
-    private GraphicRenderer graphics = new GraphicRenderer();
-    private UIHandler ui = new UIHandler();
 
     public Scene(string name)
     {
@@ -39,13 +43,13 @@ public class Scene
 
         UpdateCamera();
 
-        foreach (Entity entity in objects.Values)
+        foreach (Entity entity in entities)
         {
             if (!entity.Initialized)
                 entity.Init();
         }
 
-        foreach (Entity entity in objects.Values)
+        foreach (Entity entity in entities)
         {
             entity.Load();
         }
@@ -53,7 +57,7 @@ public class Scene
 
     public void Unload()
     {
-        foreach (Entity entity in objects.Values)
+        foreach (Entity entity in entities)
         {
             entity.Unload();
         }
@@ -95,15 +99,16 @@ public class Scene
 
     private void SpawnEntity(Entity entity, List<Entity> spawned, bool loading)
     {
-        if (objects.ContainsKey(entity.Id))
+        if (entities.Contains(entity))
         {
-            Log.Error($"Attempted to spawn an already spawned entity. (ID: {entity.Id}, Type: {entity.GetType()})");
+            Log.Error($"Attempted to spawn an already spawned entity. (ID: {entity.Id}, Name: {entity.Name})");
             return;
         }
 
-        objects.Add(entity.Id, entity);
+        entities.Add(entity);
         graphics.AddRenderables(entity);
         ui.AddCanvases(entity);
+        physics.AddColliders(entity);
 
         if (!loading)
         {
@@ -120,7 +125,7 @@ public class Scene
 
     private void RemoveEntity(Entity entity)
     {
-        objects.Remove(entity.Id);
+        entities.Remove(entity);
         graphics.RemoveRenderables(entity);
         ui.RemoveCanvases(entity);
 
@@ -164,14 +169,14 @@ public class Scene
 
     public List<Entity> GetEntities()
     {
-        return [.. objects.Values];
+        return [.. entities];
     }
 
     public List<T> Find<T>()
     {
         List<T> values = [];
 
-        foreach(Entity entity in objects.Values)
+        foreach(Entity entity in entities)
         {
             List<T> list = entity.GetModules<T>();
             values.AddRange(list);
@@ -180,14 +185,25 @@ public class Scene
         return values;
     }
 
+    public Entity Find(string name)
+    {
+        return entities[name];
+    }
+
     public void Update()
     {
         ProcessQueues(false);
 
         // Update entities
-        foreach (Entity obj in objects.Values)
+        foreach (Entity obj in entities)
         {
-            obj.Update();
+            try
+            {
+                obj.Update();
+            } catch (Exception ex)
+            {
+                Log.Error($"An exception occurred while updating entity {obj.Name}: {ex.Message}");
+            }
         }
 
         // Update camera
@@ -196,8 +212,14 @@ public class Scene
             UpdateCamera();
         }
 
+        // Update physics
+        physics.Update();
+
         // Update UI
         ui.Update();
+
+        // Process grid removal
+        entities.ProcessRemoval();
 
         // Render graphics
         Render();
@@ -248,6 +270,4 @@ public class Scene
 
         Raylib.EndDrawing();*/
     }
-
-    public Entity this[int id] => objects.GetValueOrDefault(id, null);
 }

@@ -9,8 +9,9 @@ public class Transform : EntityModule
         get => parent == null ? localPosition : parent.Position + localPosition;
         set
         {
+            Vector2 prevPos = Position;
             localPosition = parent == null ? value : value - parent.Position;
-            UpdatedPosition?.Invoke(this, value);
+            UpdatedPosition?.Invoke(this, prevPos);
         }
     }
 
@@ -19,8 +20,9 @@ public class Transform : EntityModule
         get => localPosition;
         set
         {
+            Vector2 prevPos = Position;
             localPosition = value;
-            UpdatedPosition?.Invoke(this, Position); // Notify with global position
+            UpdatedPosition?.Invoke(this, prevPos); // Notify with global position
         }
     }
 
@@ -62,13 +64,19 @@ public class Transform : EntityModule
 
     public int ChildCount => children.Count;
 
-    public event Action<Transform, Vector2> UpdatedPosition;
+    public event Action<Transform, Vector2> UpdatedPosition; // prev pos
 
     private Vector2 localPosition;
     private float scale;
     private float rotation;
     private Transform parent;
     private List<Transform> children = [];
+
+    public void Move(float x, float y)
+    {
+        Vector2 pos = Position;
+        Position = pos + new Vector2(x, y);
+    }
 
     public bool IsChildOf(Transform parent) => Parent == parent;
 

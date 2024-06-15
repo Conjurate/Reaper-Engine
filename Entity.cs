@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Numerics;
+using Reaper.Physics;
 using Reaper.UI;
 
 namespace Reaper;
@@ -10,6 +11,9 @@ public class Entity : EngineObject, IIdentifiable, IEquatable<Entity>
     public Transform Transform { get; private set; }
     public Scene Scene { get; internal set; }
     public bool HasModules => modules != null;
+
+    internal HashSet<BoxCollider> colliders;
+    internal HashSet<WorldRenderable> renderables;
 
     private Dictionary<Type, List<EntityModule>> modules;
     private SortedList<int, List<EntityModule>> sortedModules;
@@ -126,6 +130,13 @@ public class Entity : EngineObject, IIdentifiable, IEquatable<Entity>
             Log.Debug($"Changed transform to RectTransform for entity {Id}");
         }
 
+        // Cache collider for physics
+        if (module is BoxCollider collider)
+        {
+            colliders ??= [];
+            colliders.Add(collider);
+        }
+
         if (!modules.TryGetValue(type, out List<EntityModule> typeModules))
         {
             typeModules = [];
@@ -155,6 +166,12 @@ public class Entity : EngineObject, IIdentifiable, IEquatable<Entity>
         // Remove module
         if (modules.TryGetValue(type, out List<EntityModule> typeModules))
             typeModules.Remove(module);
+
+        // Remove collider
+        if (colliders != null && module is BoxCollider collider)
+        {
+            colliders.Remove(collider);
+        }
 
         // Remove module priority
         int priority = ModuleCache.GetPriority(type);

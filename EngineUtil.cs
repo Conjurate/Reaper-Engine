@@ -41,6 +41,22 @@ public static class EngineUtil
         return list;
     }
 
+    private static int MedianOfThree<T>(List<T> list, int left, int right, Comparison<T> compare)
+    {
+        int mid = left + (right - left) / 2;
+
+        if (compare(list[left], list[mid]) > 0)
+            Swap(list, left, mid);
+
+        if (compare(list[left], list[right]) > 0)
+            Swap(list, left, right);
+
+        if (compare(list[mid], list[right]) > 0)
+            Swap(list, mid, right);
+
+        return mid;
+    }
+
     public static List<T> QuickSort<T>(List<T> list, int leftIndex, int rightIndex, Comparison<T> compare)
     {
         if (list.Count <= 1 || leftIndex >= rightIndex) 
@@ -48,7 +64,9 @@ public static class EngineUtil
 
         int left = leftIndex;
         int right = rightIndex;
-        T pivot = list[left];
+
+        int pivotIndex = MedianOfThree(list, leftIndex, rightIndex, compare);
+        T pivot = list[pivotIndex];
 
         while (left <= right)
         {
@@ -84,6 +102,11 @@ public static class EngineUtil
     #region Math
 
     public static int Range(int value, int min, int max)
+    {
+        return value < min ? min : value > max ? max : value;
+    }
+
+    public static float Range(float value, float min, float max)
     {
         return value < min ? min : value > max ? max : value;
     }

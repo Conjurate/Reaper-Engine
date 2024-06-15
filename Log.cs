@@ -4,6 +4,8 @@ namespace Reaper;
 
 public static class Log
 {
+    public static bool LogDebug;
+
     public static void Info(object message)
     {
         Console.WriteLine(message);
@@ -25,6 +27,7 @@ public static class Log
 
     public static void Debug(object message, [CallerMemberName] string caller = "")
     {
+        if (!LogDebug) return;
         Console.ForegroundColor = ConsoleColor.Blue;
         Console.WriteLine($"[DEBUG] [{caller}] {message}");
         Console.ResetColor();

@@ -7,10 +7,16 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <StartupObject></StartupObject>
+    <Title>ReaperEngine</Title>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Raylib-cs" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<TrimmerRootAssembly Include="Reaper-Engine" />
+	<TrimmerRootAssembly Include="Raylib-cs" />
   </ItemGroup>
 
 </Project>

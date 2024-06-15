@@ -7,7 +7,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Reaper-Engine", "Reaper-Eng
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TileMap-Creator", "..\TileMap-Creator\TileMap-Creator.csproj", "{D23C3154-5C6E-4DD4-BB04-756C36F0AD4F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Reaper-Debug", "..\Reaper-Debug\Reaper-Debug.csproj", "{C37993AC-B804-468F-A6EA-5F0E70F19AB7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Snake", "..\Snake\Snake.csproj", "{C37993AC-B804-468F-A6EA-5F0E70F19AB7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Reaper-Debug", "..\Reaper-Debug\Reaper-Debug.csproj", "{E10D4857-0575-4C86-AE96-823ADF593629}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,10 @@ Global
 		{C37993AC-B804-468F-A6EA-5F0E70F19AB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C37993AC-B804-468F-A6EA-5F0E70F19AB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C37993AC-B804-468F-A6EA-5F0E70F19AB7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E10D4857-0575-4C86-AE96-823ADF593629}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E10D4857-0575-4C86-AE96-823ADF593629}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E10D4857-0575-4C86-AE96-823ADF593629}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E10D4857-0575-4C86-AE96-823ADF593629}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

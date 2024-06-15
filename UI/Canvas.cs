@@ -25,17 +25,20 @@ public class Canvas : EntityModule, IRenderableScreen, IRenderableWorld
         if (Input.IsMousePressed(InputKey.Mouse0))
         {
             Vector2 mousePos = Mode == RenderMode.Screen ? Mouse.Position : Mouse.WorldPosition;
-            Log.Debug(mousePos);
             foreach (Transform trans in Owner.Transform.Children)
             {
                 if (trans is RectTransform rectTransform)
                 {
                     if (rectTransform.Rect.Contains(mousePos))
                     {
+                        bool clicked = false;
                         foreach (IClickable clickable in trans.Find<IClickable>())
                         {
                             clickable.Click();
+                            clicked = true;
                         }
+                        if (clicked)
+                            return true;
                     }
                 }
             }
@@ -52,22 +55,14 @@ public class Canvas : EntityModule, IRenderableScreen, IRenderableWorld
 
     public void Render(RenderMode mode)
     {
-        /*foreach (Transform trans in Owner.transform.Children)
+        foreach (Transform trans in Owner.Transform.Children)
         {
-            if (mode == RenderMode.Screen)
-            {
-                foreach (IRenderableScreen renderable in trans.Owner.GetModules<IRenderableScreen>())
-                {
-                    renderable.Render(mode);
-                }
-            }
-            foreach (trans.Owner.GetModules<IRenderable>())
-            if (trans is IRenderableScreen renderable)
+            foreach (ICanvasRenderable renderable in trans.Owner.GetModules<ICanvasRenderable>())
             {
                 renderable.Render(mode);
             }
-        }*/
+        }
 
-        Engine.DrawRectangle(rectTransform.Rect, Color.Blue);
+        //Engine.DrawRectangle(rectTransform.Rect, Color.Blue);
     }
 }

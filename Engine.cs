@@ -6,6 +6,11 @@ using Rectangle = Reaper.UI.Rectangle;
 
 namespace Reaper;
 
+/// <summary>
+/// Reaper engine main class. In order to start the game,
+/// you must first call Init() followed by the loading
+/// of your game data, then Run().
+/// </summary>
 public class Engine
 {
     public static bool Debug { get; set; }
@@ -20,10 +25,20 @@ public class Engine
     }
     public static float Pixel => pixel;
     public static bool Initialized => init;
+    public static int CellSize
+    {
+        get => cellSize;
+        set
+        {
+            cellSize = value;
+        }
+    }
+    public static bool YSort;
 
     private static int ppu = 16;
     private static float pixel = 1.0f / ppu;
     private static bool init;
+    private static int cellSize = 16;
 
     #region Id
 
@@ -74,6 +89,14 @@ public class Engine
         System.Environment.Exit(1);
     }
 
+    /// <summary>
+    /// Get the path to Documents\My Games\folderName
+    /// </summary>
+    public static string GetPath(string folderName)
+    {
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), $"My Games/{folderName}");
+    }
+
     #region Graphics
 
     /// <summary>
@@ -119,11 +142,11 @@ public class Engine
     {
         Vector2 drawPos = pos;
         drawPos.Y *= -1;
-        drawPos.Y -= texture.Height;
+        drawPos.Y -= texture.Height * scale;
 
         float width = texture.Width * scale;
         float height = texture.Height * scale;
-
+        // TODO properly scale towards origin
         Raylib_cs.Rectangle sourceRec = new Raylib_cs.Rectangle(0, 0, texture.Width, texture.Height);
         Raylib_cs.Rectangle destRec = new Raylib_cs.Rectangle(drawPos.X + width / 2.0f, drawPos.Y + height / 2.0f, width, height);
         Vector2 origin = new Vector2(width / 2.0f, height / 2.0f);
@@ -137,15 +160,12 @@ public class Engine
     /// </summary>
     public static void DrawTexture(Texture texture, Vector2 pos, Rectangle dest, Color tint, float rot = 0, float scale = 1.0f)
     {
-        Vector2 drawPos = pos;
-        drawPos.Y *= -1;
-        drawPos.Y -= texture.Height;
-
         float width = texture.Width * scale;
         float height = texture.Height * scale;
 
         Raylib_cs.Rectangle sourceRec = new Raylib_cs.Rectangle(0, 0, texture.Width, texture.Height);
         Raylib_cs.Rectangle destRec = new Raylib_cs.Rectangle(dest.X + width / 2.0f, dest.Y + height / 2.0f, dest.Width, dest.Height);
+
         Vector2 origin = new Vector2(width / 2.0f, height / 2.0f);
 
         // Draw the texture
@@ -181,8 +201,8 @@ public class Engine
     {
         Vector2 drawPos = pos;
         drawPos *= Engine.PixelsPerUnit;
-        drawPos.X -= (sprite.Texture.Width * sprite.Pivot.X);
-        drawPos.Y -= (sprite.Texture.Height * sprite.Pivot.Y);
+        drawPos.X -= (sprite.Texture.Width * scale * sprite.Pivot.X);
+        drawPos.Y -= (sprite.Texture.Height * scale * sprite.Pivot.Y);
         DrawTexture(sprite.Texture, drawPos, tint, rot, scale);
     }
 
@@ -217,6 +237,7 @@ public class Engine
     public static Texture LoadTexture(string path)
     {
         Texture2D texture = Raylib.LoadTexture(path);
+        Raylib.SetTextureFilter(texture, TextureFilter.Point);
         return new Texture(texture);
     }
 

@@ -8,9 +8,8 @@ using System.Threading.Tasks;
 namespace Reaper.UI;
 
 [RequireModule(typeof(RectTransform))]
-public class Image : EntityModule, IRenderableScreen, IRenderableWorld
+public class Image : EntityModule, ICanvasRenderable
 {
-    public int Layer { get; set; }
     public Texture Texture { get; set; }
     public Color Tint { get; set; } = Color.White;
 
@@ -25,8 +24,6 @@ public class Image : EntityModule, IRenderableScreen, IRenderableWorld
     {
         trans = Transform as RectTransform;
     }
-
-    public bool IsRenderable(RenderMode mode) => true;
 
     public void Render(RenderMode mode)
     {

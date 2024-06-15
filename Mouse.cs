@@ -34,4 +34,15 @@ public static class Mouse
             return angleRadians * (180.0f / (float)Math.PI);
         }
     }
+
+    public static Entity EntityOnMouse
+    {
+        get
+        {
+            Scene scene = SceneManager.ActiveScene;
+            if (scene == null) return null;
+            Vector2 pos = WorldPosition;
+            return null;
+        }
+    }
 }

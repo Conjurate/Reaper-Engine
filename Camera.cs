@@ -52,11 +52,4 @@ public class Camera : EntityModule
         prevZoom = Zoom;
         prevRot = Transform.Rotation;
     }
-
-    private void UpdatedPosition(Transform transform, Vector2 oldPos)
-    {
-        //camera2D.Target = transform.Position * Engine.PixelsPerUnit;
-        //camera2D.Target.Y *= -1;
-        UpdateBounds();
-    }
 }
